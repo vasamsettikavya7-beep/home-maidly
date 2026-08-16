@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: homemaidly-postgres
+    environment:
+      POSTGRES_USER: homemaidly
+      POSTGRES_PASSWORD: homemaidlysecure
+      POSTGRES_DB: homemaidly
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: homemaidly-redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redisdata:/data
+    restart: always
+
+volumes:
+  pgdata:
+  redisdata:
