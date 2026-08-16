@@ -6,7 +6,7 @@ services:
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
-        value: file:/var/data/dev.db
+        value: file:./dev.db
       - key: JWT_SECRET
         generateValue: true
       - key: NODE_ENV
@@ -17,7 +17,3 @@ services:
         sync: false
       - key: TWILIO_PHONE_NUMBER
         sync: false
-    disk:
-      name: sqlite-db-volume
-      mountPath: /var/data
-      sizeGB: 1
