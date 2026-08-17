@@ -1654,27 +1654,56 @@ export default function AppHome() {
                       <h3 style={{ margin: '24px 0 12px 0', borderTop: '1px solid var(--color-border)', paddingTop: '20px', fontSize: '16px', fontWeight: 'bold' }}>
                         Helper Background Info
                       </h3>
-                      <div className="grid grid-2" style={{ gap: '12px', marginBottom: '16px' }}>
-                        <div className="form-group" style={{ marginBottom: 0 }}>
-                          <label>Experience (Years)</label>
-                          <input
-                            type="number"
-                            className="form-input"
-                            min="0"
-                            placeholder="e.g. 5"
-                            value={provExpYears}
-                            onChange={(e) => setProvExpYears(parseInt(e.target.value) || 0)}
-                          />
-                        </div>
-                        <div className="form-group" style={{ marginBottom: 0 }}>
-                          <label>Languages Spoken</label>
-                          <input
-                            type="text"
-                            className="form-input"
-                            placeholder="e.g. English, Hindi"
-                            value={provLanguages}
-                            onChange={(e) => setProvLanguages(e.target.value)}
-                          />
+                      <div className="form-group" style={{ marginBottom: '16px' }}>
+                        <label>Experience (Years)</label>
+                        <input
+                          type="number"
+                          className="form-input"
+                          min="0"
+                          placeholder="e.g. 5"
+                          value={provExpYears}
+                          onChange={(e) => setProvExpYears(parseInt(e.target.value) || 0)}
+                          style={{ maxWidth: '200px' }}
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: '20px' }}>
+                        <label style={{ display: 'block', marginBottom: '8px' }}>Languages Spoken</label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                          {['Telugu', 'Hindi', 'English', 'Kannada', 'Tamil', 'Malayalam', 'Bengali', 'Marathi', 'Gujarati', 'Punjabi', 'Urdu'].map((lang) => {
+                            const selectedLangs = provLanguages ? provLanguages.split(',').map(l => l.trim()).filter(Boolean) : [];
+                            const isSelected = selectedLangs.includes(lang);
+                            return (
+                              <button
+                                type="button"
+                                key={lang}
+                                onClick={() => {
+                                  let updatedLangs;
+                                  if (isSelected) {
+                                    updatedLangs = selectedLangs.filter(l => l !== lang);
+                                  } else {
+                                    updatedLangs = [...selectedLangs, lang];
+                                  }
+                                  setProvLanguages(updatedLangs.join(', '));
+                                }}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  padding: '6px 14px',
+                                  borderRadius: '20px',
+                                  fontSize: '13px',
+                                  fontWeight: isSelected ? 'bold' : 'normal',
+                                  cursor: 'pointer',
+                                  border: '1px solid',
+                                  borderColor: isSelected ? 'var(--color-primary)' : 'var(--color-border)',
+                                  backgroundColor: isSelected ? 'rgba(72, 187, 120, 0.1)' : 'transparent',
+                                  color: isSelected ? 'var(--color-primary)' : 'var(--color-text)',
+                                  transition: 'all 0.15s ease'
+                                }}
+                              >
+                                {isSelected ? '✓ ' : '+ '} {lang}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                       <div className="form-group" style={{ marginBottom: '24px' }}>
