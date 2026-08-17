@@ -113,6 +113,9 @@ export default function AppHome() {
   const [bankName, setBankName] = useState<string>('');
   const [bankAccount, setBankAccount] = useState<string>('');
   const [bankIfsc, setBankIfsc] = useState<string>('');
+  const [provExpYears, setProvExpYears] = useState<number>(0);
+  const [provLanguages, setProvLanguages] = useState<string>('');
+  const [provServiceAreas, setProvServiceAreas] = useState<string>('');
 
   // Admin Data
   const [adminAnalytics, setAdminAnalytics] = useState<any>(null);
@@ -556,6 +559,14 @@ export default function AppHome() {
       const data = await res.json();
       if (data.success) {
         setProviderServicesList(data.data.services);
+        if (data.data.profile) {
+          setProvExpYears(data.data.profile.experienceYears || 0);
+          setProvLanguages(data.data.profile.languages || '');
+          setProvServiceAreas(data.data.profile.serviceAreas || '');
+          setBankName(data.data.profile.bankName || '');
+          setBankAccount(data.data.profile.bankAccountNumber || '');
+          setBankIfsc(data.data.profile.bankIfscCode || '');
+        }
       }
     } catch (err) {
       console.error('Failed to load provider services', err);
@@ -578,11 +589,19 @@ export default function AppHome() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${authToken}`
         },
-        body: JSON.stringify({ serviceIds: selectedIds })
+        body: JSON.stringify({
+          serviceIds: selectedIds,
+          experienceYears: provExpYears,
+          languages: provLanguages,
+          serviceAreas: provServiceAreas,
+          bankName,
+          bankAccountNumber: bankAccount,
+          bankIfscCode: bankIfsc
+        })
       });
       const data = await res.json();
       if (data.success) {
-        alert('Services updated successfully! Jobs will be auto-assigned matching these selections.');
+        alert('Services and profile details updated successfully! Jobs will be auto-assigned matching these selections.');
         refreshDashboardData();
       } else {
         alert(data.error?.message || 'Failed to update services.');
@@ -1545,13 +1564,87 @@ export default function AppHome() {
                           </label>
                         ))}
                       </div>
+
+                      <h3 style={{ margin: '24px 0 12px 0', borderTop: '1px solid var(--color-border)', paddingTop: '20px', fontSize: '16px', fontWeight: 'bold' }}>
+                        Helper Background Info
+                      </h3>
+                      <div className="grid grid-2" style={{ gap: '12px', marginBottom: '16px' }}>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                          <label>Experience (Years)</label>
+                          <input
+                            type="number"
+                            className="form-input"
+                            min="0"
+                            placeholder="e.g. 5"
+                            value={provExpYears}
+                            onChange={(e) => setProvExpYears(parseInt(e.target.value) || 0)}
+                          />
+                        </div>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                          <label>Languages Spoken</label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            placeholder="e.g. English, Hindi"
+                            value={provLanguages}
+                            onChange={(e) => setProvLanguages(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div className="form-group" style={{ marginBottom: '24px' }}>
+                        <label>Service Areas (Locations you cover)</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="e.g. Gachibowli, Kondapur, Madhapur"
+                          value={provServiceAreas}
+                          onChange={(e) => setProvServiceAreas(e.target.value)}
+                        />
+                      </div>
+
+                      <h3 style={{ margin: '20px 0 12px 0', borderTop: '1px solid var(--color-border)', paddingTop: '20px', fontSize: '16px', fontWeight: 'bold' }}>
+                        Payout Bank Accounts
+                      </h3>
+                      <div className="form-group" style={{ marginBottom: '12px' }}>
+                        <label>Bank Name</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="e.g. HDFC Bank, SBI"
+                          value={bankName}
+                          onChange={(e) => setBankName(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid grid-2" style={{ gap: '12px', marginBottom: '24px' }}>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                          <label>Bank Account Number</label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            placeholder="Enter account number"
+                            value={bankAccount}
+                            onChange={(e) => setBankAccount(e.target.value)}
+                          />
+                        </div>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                          <label>IFSC Code</label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            placeholder="Enter 11-digit IFSC code"
+                            value={bankIfsc}
+                            onChange={(e) => setBankIfsc(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
                       <button
                         type="submit"
                         className="btn btn-primary"
                         style={{ width: '100%' }}
                         disabled={isSavingServices}
                       >
-                        {isSavingServices ? 'Saving Changes...' : 'Save Services Configurations'}
+                        {isSavingServices ? 'Saving Changes...' : 'Save Profile & Services Configurations'}
                       </button>
                     </form>
                   )}
