@@ -5,10 +5,15 @@ import { db } from '@/lib/db';
 
 export async function POST(req: NextRequest) {
   try {
-    const { phone, otp, name, role, action } = await req.json();
+    let { phone, otp, name, role, action } = await req.json();
 
     if (!phone || !otp) {
       return generateApiResponse(false, null, 'Phone number and OTP code are required.', 400, 'BAD_REQUEST');
+    }
+
+    phone = phone.trim().replace(/[\s-]/g, '');
+    if (phone.length === 10 && /^\d+$/.test(phone)) {
+      phone = `+91${phone}`;
     }
 
     // 1. Verify OTP
