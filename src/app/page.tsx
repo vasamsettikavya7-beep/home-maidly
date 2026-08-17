@@ -104,6 +104,7 @@ export default function AppHome() {
   const [reviewQuality, setReviewQuality] = useState<number>(5);
   const [reviewBehavior, setReviewBehavior] = useState<number>(5);
   const [reviewPunctuality, setReviewPunctuality] = useState<number>(5);
+  const [kycDocType, setKycDocType] = useState<string>('Aadhaar Card (India)');
 
   // Admin Data
   const [adminAnalytics, setAdminAnalytics] = useState<any>(null);
@@ -177,6 +178,18 @@ export default function AppHome() {
 
     try {
       const headers = { 'Authorization': `Bearer ${authToken}` };
+
+      // Load fresh user details to get updated KYC status
+      try {
+        const meRes = await fetch('/api/v1/auth/me', { headers });
+        const meData = await meRes.json();
+        if (meData.success && meData.data.user) {
+          setCurrentUser(meData.data.user);
+          localStorage.setItem('currentUser', JSON.stringify(meData.data.user));
+        }
+      } catch (meErr) {
+        console.error('Failed to load me details', meErr);
+      }
 
       // Load bookings
       const bookRes = await fetch('/api/v1/bookings', { headers });
@@ -480,6 +493,34 @@ export default function AppHome() {
     setNewAddressLine('');
     setNewAddressLandmark('');
     setNewAddressTitle('Home');
+  };
+
+  const handleProviderSubmitKyc = async () => {
+    try {
+      const res = await fetch('/api/v1/provider/kyc', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          documentType: kycDocType,
+          documentUrl: 'kyc_verification_doc.pdf'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('KYC document submitted successfully! Verification is pending.');
+        const updatedUser = { ...currentUser, kycStatus: 'PENDING_VERIFICATION' };
+        setCurrentUser(updatedUser);
+        localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+        refreshDashboardData();
+      } else {
+        alert(data.error?.message || 'Failed to submit KYC.');
+      }
+    } catch {
+      alert('Error submitting KYC documents.');
+    }
   };
 
   // Booking Flow Controls
@@ -1256,29 +1297,54 @@ export default function AppHome() {
               {subTab === 'kyc' && (
                 <div className="card" style={{ maxWidth: '500px' }}>
                   <h2 style={{ marginBottom: '16px' }}>KYC Verification</h2>
-                  <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', marginBottom: '20px' }}>
-                    Government regulations require identity checking before you can accept childcare or cleaning orders.
-                  </p>
-                  <div className="form-group">
-                    <label>Identity Document Type</label>
-                    <select className="form-input">
-                      <option>Aadhaar Card (India)</option>
-                      <option>PAN Card (India)</option>
-                      <option>Passport</option>
-                      <option>Driving License</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Document Photo Upload (PDF/Image)</label>
-                    <input type="file" className="form-input" />
-                  </div>
-                  <button
-                    className="btn btn-primary"
-                    style={{ width: '100%' }}
-                    onClick={() => alert('Documents uploaded successfully! Review is pending with administration.')}
-                  >
-                    Upload Files
-                  </button>
+                  
+                  {currentUser?.kycStatus === 'ACTIVE' || currentUser?.kycStatus === 'VERIFIED' ? (
+                    <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                      <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
+                      <h4 style={{ fontWeight: 'bold', color: 'var(--color-success)', marginBottom: '8px' }}>KYC Status: Verified & Active</h4>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>
+                        Your identity profile has been reviewed and verified by administration. You are ready to accept customer jobs!
+                      </p>
+                    </div>
+                  ) : currentUser?.kycStatus === 'PENDING_VERIFICATION' ? (
+                    <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                      <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
+                      <h4 style={{ fontWeight: 'bold', color: 'var(--color-warning)', marginBottom: '8px' }}>KYC Status: Review Pending</h4>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>
+                        Your documents have been submitted successfully. Our admin team is checking background details. Review usually takes 24 hours.
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', marginBottom: '20px' }}>
+                        Government regulations require identity checking before you can accept childcare or cleaning orders.
+                      </p>
+                      <div className="form-group">
+                        <label>Identity Document Type</label>
+                        <select
+                          className="form-input"
+                          value={kycDocType}
+                          onChange={(e) => setKycDocType(e.target.value)}
+                        >
+                          <option value="Aadhaar Card">Aadhaar Card (India)</option>
+                          <option value="PAN Card">PAN Card (India)</option>
+                          <option value="Passport">Passport</option>
+                          <option value="Driving License">Driving License</option>
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label>Document Photo Upload (PDF/Image)</label>
+                        <input type="file" className="form-input" />
+                      </div>
+                      <button
+                        className="btn btn-primary"
+                        style={{ width: '100%' }}
+                        onClick={handleProviderSubmitKyc}
+                      >
+                        Upload & Submit Verification
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </main>
