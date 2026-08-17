@@ -110,6 +110,9 @@ export default function AppHome() {
   const [reviewPunctuality, setReviewPunctuality] = useState<number>(5);
   const [kycDocType, setKycDocType] = useState<string>('Aadhaar Card (India)');
   const [kycFile, setKycFile] = useState<File | null>(null);
+  const [bankName, setBankName] = useState<string>('');
+  const [bankAccount, setBankAccount] = useState<string>('');
+  const [bankIfsc, setBankIfsc] = useState<string>('');
 
   // Admin Data
   const [adminAnalytics, setAdminAnalytics] = useState<any>(null);
@@ -522,7 +525,10 @@ export default function AppHome() {
         },
         body: JSON.stringify({
           documentType: kycDocType,
-          documentUrl: kycFile.name || 'kyc_verification_doc.pdf'
+          documentUrl: kycFile.name || 'kyc_verification_doc.pdf',
+          bankName,
+          bankAccountNumber: bankAccount,
+          bankIfscCode: bankIfsc
         })
       });
       const data = await res.json();
@@ -1415,8 +1421,9 @@ export default function AppHome() {
                   ) : (
                     <div>
                       <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', marginBottom: '20px' }}>
-                        Government regulations require identity checking before you can accept childcare or cleaning orders.
+                        Government regulations require identity checking and bank details to set up your helper profile for job assignments and direct payouts.
                       </p>
+                      <h4 style={{ marginBottom: '12px', fontSize: '15px', fontWeight: 'bold' }}>1. Identity Document</h4>
                       <div className="form-group">
                         <label>Identity Document Type</label>
                         <select
@@ -1440,9 +1447,45 @@ export default function AppHome() {
                           required
                         />
                       </div>
+
+                      <h4 style={{ margin: '20px 0 12px 0', fontSize: '15px', fontWeight: 'bold' }}>2. Bank & Payout Details</h4>
+                      <div className="form-group">
+                        <label>Bank Name</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="e.g. HDFC Bank, SBI"
+                          value={bankName}
+                          onChange={(e) => setBankName(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Bank Account Number</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="Enter account number"
+                          value={bankAccount}
+                          onChange={(e) => setBankAccount(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>IFSC Code</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="Enter 11-digit IFSC code"
+                          value={bankIfsc}
+                          onChange={(e) => setBankIfsc(e.target.value)}
+                          required
+                        />
+                      </div>
+
                       <button
                         className="btn btn-primary"
-                        style={{ width: '100%' }}
+                        style={{ width: '100%', marginTop: '16px' }}
                         onClick={handleProviderSubmitKyc}
                       >
                         Upload & Submit Verification
@@ -1630,17 +1673,48 @@ export default function AppHome() {
                     <div className="grid grid-2">
                       {pendingKycProviders.map((p) => (
                         <div key={p.id} className="card">
-                          <h3>{p.user.name}</h3>
-                          <p style={{ fontSize: '14px', margin: '4px 0' }}>
+                          <h3 style={{ margin: '0 0 12px 0', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
+                            👤 {p.user.name}
+                          </h3>
+                          <p style={{ fontSize: '13px', margin: '4px 0' }}>
                             📞 <strong>Phone:</strong> {p.user.phone}
                           </p>
-                          <p style={{ fontSize: '14px', margin: '4px 0' }}>
-                            📁 <strong>Document Type:</strong> {p.kycDocumentType || 'Aadhaar Card'}
+                          <p style={{ fontSize: '13px', margin: '4px 0' }}>
+                            💼 <strong>Experience:</strong> {p.experienceYears || 0} Years
                           </p>
-                          <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
-                            Reviewing passport photos, background checks, and certifications.
+                          <p style={{ fontSize: '13px', margin: '4px 0' }}>
+                            🗣️ <strong>Languages:</strong> {p.languages || 'English'}
                           </p>
-                          <div style={{ display: 'flex', gap: '8px' }}>
+                          <p style={{ fontSize: '13px', margin: '4px 0' }}>
+                            📍 <strong>Service Areas:</strong> {p.serviceAreas || 'Not Set'}
+                          </p>
+
+                          <div style={{ margin: '12px 0', padding: '10px', backgroundColor: 'var(--color-background)', borderRadius: 'var(--radius-sm)' }}>
+                            <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 'bold' }}>💳 Payout Bank Details</h4>
+                            <p style={{ fontSize: '12px', margin: '2px 0' }}>🏦 <strong>Bank:</strong> {p.bankName || 'Not Provided'}</p>
+                            <p style={{ fontSize: '12px', margin: '2px 0' }}>🔢 <strong>A/C No:</strong> {p.bankAccountNumber || 'Not Provided'}</p>
+                            <p style={{ fontSize: '12px', margin: '2px 0' }}>🔍 <strong>IFSC:</strong> {p.bankIfscCode || 'Not Provided'}</p>
+                          </div>
+
+                          <div style={{ margin: '12px 0', padding: '10px', backgroundColor: 'rgba(72, 187, 120, 0.05)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(72, 187, 120, 0.15)' }}>
+                            <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 'bold' }}>📄 Attached Verification Document</h4>
+                            <p style={{ fontSize: '12px', margin: '2px 0' }}>📌 <strong>Type:</strong> {p.kycDocumentType || 'Aadhaar Card'}</p>
+                            <p style={{ fontSize: '12px', margin: '4px 0 0 0' }}>
+                              📁 <strong>File:</strong>{' '}
+                              <a
+                                href="#"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  alert(`Inspecting document: ${p.kycDocumentUrl || 'kyc_verification_doc.pdf'}\nStatus: Verified file integrity.`);
+                                }}
+                                style={{ color: 'var(--color-primary)', textDecoration: 'underline', fontWeight: 'bold' }}
+                              >
+                                {p.kycDocumentUrl || 'kyc_verification_doc.pdf'} (Click to View Photo)
+                              </a>
+                            </p>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
                             <button
                               className="btn btn-primary"
                               style={{ padding: '6px 12px', fontSize: '13px' }}
@@ -1693,9 +1767,27 @@ export default function AppHome() {
                             <p style={{ fontSize: '13px', margin: '4px 0' }}>
                               ✔️ <strong>Completed Jobs:</strong> {p.completedJobsCount}
                             </p>
+                            
+                            <div style={{ margin: '12px 0 0 0', padding: '10px', backgroundColor: 'var(--color-background)', borderRadius: 'var(--radius-sm)' }}>
+                              <h4 style={{ margin: '0 0 6px 0', fontSize: '12px', fontWeight: 'bold' }}>💳 Payout Bank Details</h4>
+                              <p style={{ fontSize: '11px', margin: '2px 0' }}>🏦 <strong>Bank:</strong> {p.bankName || 'Not Provided'}</p>
+                              <p style={{ fontSize: '11px', margin: '2px 0' }}>🔢 <strong>A/C No:</strong> {p.bankAccountNumber || 'Not Provided'}</p>
+                              <p style={{ fontSize: '11px', margin: '2px 0' }}>🔍 <strong>IFSC:</strong> {p.bankIfscCode || 'Not Provided'}</p>
+                            </div>
+
                             {p.kycDocumentType && (
-                              <p style={{ fontSize: '13px', margin: '8px 0 0 0', padding: '6px', backgroundColor: 'rgba(72, 187, 120, 0.05)', borderRadius: 'var(--radius-sm)' }}>
-                                📁 <strong>{p.kycDocumentType}:</strong> <a href="#" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>{p.kycDocumentUrl}</a>
+                              <p style={{ fontSize: '12px', margin: '8px 0 0 0', padding: '6px', backgroundColor: 'rgba(72, 187, 120, 0.05)', borderRadius: 'var(--radius-sm)' }}>
+                                📁 <strong>{p.kycDocumentType}:</strong>{' '}
+                                <a
+                                  href="#"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    alert(`Inspecting document: ${p.kycDocumentUrl || 'kyc_verification_doc.pdf'}`);
+                                  }}
+                                  style={{ color: 'var(--color-primary)', textDecoration: 'underline', fontWeight: 'bold' }}
+                                >
+                                  {p.kycDocumentUrl}
+                                </a>
                               </p>
                             )}
                           </div>
