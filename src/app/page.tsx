@@ -255,11 +255,17 @@ export default function AppHome() {
     setLoginMessage(null);
     if (!authPhone) return;
 
+    let targetPhone = authPhone.trim();
+    if (targetPhone.length === 10 && /^\d+$/.test(targetPhone)) {
+      targetPhone = `+91${targetPhone}`;
+      setAuthPhone(targetPhone);
+    }
+
     try {
       const res = await fetch('/api/v1/auth/otp-send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: authPhone }),
+        body: JSON.stringify({ phone: targetPhone }),
       });
       const data = await res.json();
       if (data.success) {
@@ -278,12 +284,18 @@ export default function AppHome() {
     setLoginMessage(null);
     if (!authPhone || !authOtp) return;
 
+    let targetPhone = authPhone.trim();
+    if (targetPhone.length === 10 && /^\d+$/.test(targetPhone)) {
+      targetPhone = `+91${targetPhone}`;
+      setAuthPhone(targetPhone);
+    }
+
     try {
       const res = await fetch('/api/v1/auth/otp-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone: authPhone,
+          phone: targetPhone,
           otp: authOtp,
           name: authMode === 'register' ? authName : undefined,
           role: authMode === 'register' ? 'PROVIDER' : 'CUSTOMER',
