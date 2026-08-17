@@ -44,6 +44,7 @@ export default function AppHome() {
   const [authName, setAuthName] = useState<string>('');
   const [authRoleSelection, setAuthRoleSelection] = useState<string>('CUSTOMER');
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [otpSent, setOtpSent] = useState<boolean>(false);
   const [loginMessage, setLoginMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
 
@@ -274,8 +275,9 @@ export default function AppHome() {
         body: JSON.stringify({
           phone: authPhone,
           otp: authOtp,
-          name: authName || undefined,
-          role: authRoleSelection,
+          name: authMode === 'register' ? authName : undefined,
+          role: authMode === 'register' ? 'PROVIDER' : 'CUSTOMER',
+          action: authMode,
         }),
       });
       const data = await res.json();
@@ -1307,10 +1309,53 @@ export default function AppHome() {
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent} style={{ maxWidth: '400px' }}>
             <div className={styles.modalHeader}>
-              <h3>Register / Login</h3>
+              <h3>{authMode === 'login' ? 'Customer Login' : 'Helper Registration'}</h3>
               <button className="btn btn-outline btn-sm" onClick={() => setShowLoginModal(false)}>✕</button>
             </div>
             <div className={styles.modalBody}>
+              {!otpSent && (
+                <div style={{ display: 'flex', marginBottom: '20px', borderBottom: '1px solid var(--color-border)' }}>
+                  <button
+                    type="button"
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      background: 'none',
+                      border: 'none',
+                      fontWeight: authMode === 'login' ? 'bold' : 'normal',
+                      borderBottom: authMode === 'login' ? '2px solid var(--color-primary)' : 'none',
+                      color: authMode === 'login' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => {
+                      setAuthMode('login');
+                      setLoginMessage(null);
+                    }}
+                  >
+                    Customer Login
+                  </button>
+                  <button
+                    type="button"
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      background: 'none',
+                      border: 'none',
+                      fontWeight: authMode === 'register' ? 'bold' : 'normal',
+                      borderBottom: authMode === 'register' ? '2px solid var(--color-primary)' : 'none',
+                      color: authMode === 'register' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => {
+                      setAuthMode('register');
+                      setLoginMessage(null);
+                    }}
+                  >
+                    Helper Register
+                  </button>
+                </div>
+              )}
+
               {loginMessage && (
                 <div style={{
                   padding: '10px',
@@ -1326,6 +1371,19 @@ export default function AppHome() {
 
               {!otpSent ? (
                 <form onSubmit={handleSendOtp}>
+                  {authMode === 'register' && (
+                    <div className="form-group">
+                      <label>Full Name</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Enter your full name"
+                        value={authName}
+                        onChange={(e) => setAuthName(e.target.value)}
+                        required
+                      />
+                    </div>
+                  )}
                   <div className="form-group">
                     <label>Mobile Number</label>
                     <input
@@ -1356,26 +1414,6 @@ export default function AppHome() {
                       onChange={(e) => setAuthOtp(e.target.value)}
                       required
                     />
-                  </div>
-                  <div className="form-group">
-                    <label>Full Name (New registration only)</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={authName}
-                      onChange={(e) => setAuthName(e.target.value)}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Register as Role</label>
-                    <select
-                      className="form-input"
-                      value={authRoleSelection}
-                      onChange={(e) => setAuthRoleSelection(e.target.value)}
-                    >
-                      <option value="CUSTOMER">Customer (Find Help)</option>
-                      <option value="PROVIDER">Service Provider (Give Help)</option>
-                    </select>
                   </div>
                   <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
                     Verify & Login
