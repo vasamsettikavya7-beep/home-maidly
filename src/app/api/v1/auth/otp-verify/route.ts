@@ -25,9 +25,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    if (action === 'login' && !user) {
-      return generateApiResponse(false, null, 'Phone number is not registered. Please register first.', 404, 'USER_NOT_FOUND');
-    }
 
     if (action === 'register' && user) {
       return generateApiResponse(false, null, 'Phone number is already registered. Please log in instead.', 400, 'USER_ALREADY_EXISTS');
