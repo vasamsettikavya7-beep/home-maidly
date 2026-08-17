@@ -350,7 +350,27 @@ export default function AppHome() {
       return;
     }
 
-    // Real Outbound Firebase SMS OTP verification Flow
+    // Check if user is already registered in our database
+    try {
+      setLoginMessage({ type: 'success', text: 'Checking user registration status...' });
+      const checkRes = await fetch('/api/v1/auth/otp-send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: targetPhone })
+      });
+      const checkData = await checkRes.json();
+      
+      if (checkData.success && checkData.data?.exists) {
+        // User already exists previously - bypass OTP completely and log in directly!
+        setLoginMessage({ type: 'success', text: 'Logging you in...' });
+        await finalizeBackendLogin(targetPhone);
+        return;
+      }
+    } catch (err) {
+      console.error('User check error:', err);
+    }
+
+    // Real Outbound Firebase SMS OTP verification Flow for FIRST-TIME users/helpers
     try {
       setLoginMessage({ type: 'success', text: 'Sending verification code...' });
       
