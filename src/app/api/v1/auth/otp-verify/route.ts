@@ -5,21 +5,15 @@ import { db } from '@/lib/db';
 
 export async function POST(req: NextRequest) {
   try {
-    let { phone, otp, name, role, action } = await req.json();
+    let { phone, name, role, action } = await req.json();
 
-    if (!phone || !otp) {
-      return generateApiResponse(false, null, 'Phone number and OTP code are required.', 400, 'BAD_REQUEST');
+    if (!phone) {
+      return generateApiResponse(false, null, 'Phone number is required.', 400, 'BAD_REQUEST');
     }
 
     phone = phone.trim().replace(/[\s-]/g, '');
     if (phone.length === 10 && /^\d+$/.test(phone)) {
       phone = `+91${phone}`;
-    }
-
-    // 1. Verify OTP
-    const verification = verifyOTP(phone, otp);
-    if (!verification.success) {
-      return generateApiResponse(false, null, verification.message, 400, 'INVALID_OTP');
     }
 
     // 2. Fetch or create User
