@@ -4,6 +4,7 @@ import { getAuthenticatedUser, generateApiResponse } from '@/lib/auth-helper';
 import { paymentService } from '@/lib/payments/PaymentService';
 import { autoAssignProvider } from '@/lib/assignment/scoring';
 import { notificationService } from '@/lib/notifications/service';
+import { sendSmsNotification } from '@/lib/sms/fast2sms';
 
 export async function POST(req: NextRequest) {
   const user = await getAuthenticatedUser(req);
@@ -105,6 +106,12 @@ export async function POST(req: NextRequest) {
       finalBooking.totalAmount
     );
 
+    // Send Fast2SMS verification notification
+    sendSmsNotification(
+      finalBooking.customer.user.phone,
+      `Your booking ${finalBooking.bookingNumber} has been created successfully! We are matching a professional helper for you shortly. Amount paid: INR ${finalBooking.totalAmount}.`
+    );
+
     // 4. SMART ASSIGNMENT EXECUTION
     const assignResult = await autoAssignProvider(finalBooking.id);
 
@@ -112,13 +119,25 @@ export async function POST(req: NextRequest) {
       // Fetch fresh booking info to get matched provider name
       const freshBooking = await db.booking.findUnique({
         where: { id: finalBooking.id },
-        include: { provider: { include: { user: true } } },
+        include: { provider: { include: { user: true } }, customer: { include: { user: true } } },
       });
       if (freshBooking?.provider) {
         notificationService.notifyProviderAssigned(
           freshBooking.bookingNumber,
           freshBooking.customerId,
           freshBooking.provider.user.name
+        );
+
+        // Send Fast2SMS helper assignment SMS to helper
+        sendSmsNotification(
+          freshBooking.provider.user.phone,
+          `You have a new work assignment! Booking ${freshBooking.bookingNumber} has been assigned to you. Open Pro Panel to check details.`
+        );
+
+        // Send Fast2SMS helper assignment SMS to customer
+        sendSmsNotification(
+          freshBooking.customer.user.phone,
+          `Your booking ${freshBooking.bookingNumber} has been assigned to helper ${freshBooking.provider.user.name} (${freshBooking.provider.user.phone}).`
         );
       }
     }
