@@ -47,6 +47,7 @@ export default function AppHome() {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [otpSent, setOtpSent] = useState<boolean>(false);
   const [loginMessage, setLoginMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
+  const [isAdminLogin, setIsAdminLogin] = useState<boolean>(false);
 
   // General App State
   const [categories, setCategories] = useState<any[]>([]);
@@ -1873,7 +1874,8 @@ export default function AppHome() {
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 } else {
                   setAuthMode('login');
-                  setLoginMessage({ type: 'success', text: 'Please log in with your Admin phone number (+919999999999).' });
+                  setLoginMessage(null);
+                  setIsAdminLogin(true);
                   setShowLoginModal(true);
                 }
               }}
@@ -1889,50 +1891,52 @@ export default function AppHome() {
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent} style={{ maxWidth: '400px' }}>
             <div className={styles.modalHeader}>
-              <h3>{authMode === 'login' ? 'Customer Login' : 'Helper Registration'}</h3>
-              <button className="btn btn-outline btn-sm" onClick={() => setShowLoginModal(false)}>✕</button>
+              <h3>{isAdminLogin ? 'Admin Login' : authMode === 'login' ? 'Customer Login' : 'Helper Registration'}</h3>
+              <button className="btn btn-outline btn-sm" onClick={() => { setShowLoginModal(false); setIsAdminLogin(false); }}>✕</button>
             </div>
             <div className={styles.modalBody}>
-              <div style={{ display: 'flex', marginBottom: '20px', borderBottom: '1px solid var(--color-border)' }}>
-                <button
-                  type="button"
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    background: 'none',
-                    border: 'none',
-                    fontWeight: authMode === 'login' ? 'bold' : 'normal',
-                    borderBottom: authMode === 'login' ? '2px solid var(--color-primary)' : 'none',
-                    color: authMode === 'login' ? 'var(--color-primary)' : 'var(--color-text-muted)',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => {
-                    setAuthMode('login');
-                    setLoginMessage(null);
-                  }}
-                >
-                  Customer Login
-                </button>
-                <button
-                  type="button"
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    background: 'none',
-                    border: 'none',
-                    fontWeight: authMode === 'register' ? 'bold' : 'normal',
-                    borderBottom: authMode === 'register' ? '2px solid var(--color-primary)' : 'none',
-                    color: authMode === 'register' ? 'var(--color-primary)' : 'var(--color-text-muted)',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => {
-                    setAuthMode('register');
-                    setLoginMessage(null);
-                  }}
-                >
-                  Helper Register
-                </button>
-              </div>
+              {!isAdminLogin && (
+                <div style={{ display: 'flex', marginBottom: '20px', borderBottom: '1px solid var(--color-border)' }}>
+                  <button
+                    type="button"
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      background: 'none',
+                      border: 'none',
+                      fontWeight: authMode === 'login' ? 'bold' : 'normal',
+                      borderBottom: authMode === 'login' ? '2px solid var(--color-primary)' : 'none',
+                      color: authMode === 'login' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => {
+                      setAuthMode('login');
+                      setLoginMessage(null);
+                    }}
+                  >
+                    Customer Login
+                  </button>
+                  <button
+                    type="button"
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      background: 'none',
+                      border: 'none',
+                      fontWeight: authMode === 'register' ? 'bold' : 'normal',
+                      borderBottom: authMode === 'register' ? '2px solid var(--color-primary)' : 'none',
+                      color: authMode === 'register' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => {
+                      setAuthMode('register');
+                      setLoginMessage(null);
+                    }}
+                  >
+                    Helper Register
+                  </button>
+                </div>
+              )}
 
               {loginMessage && (
                 <div style={{
@@ -1973,7 +1977,7 @@ export default function AppHome() {
                   />
                 </div>
                 <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '8px' }}>
-                  {authMode === 'login' ? 'Login Now' : 'Register & Login'}
+                  {isAdminLogin ? 'Admin Login Now' : authMode === 'login' ? 'Login Now' : 'Register & Login'}
                 </button>
               </form>
             </div>
