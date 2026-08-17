@@ -92,6 +92,8 @@ export default function AppHome() {
   const [allBookings, setAllBookings] = useState<any[]>([]); // Admin
   const [selectedBookingDetails, setSelectedBookingDetails] = useState<any>(null);
   const [showBookingDetailsModal, setShowBookingDetailsModal] = useState<boolean>(false);
+  const [providerServicesList, setProviderServicesList] = useState<any[]>([]);
+  const [isSavingServices, setIsSavingServices] = useState<boolean>(false);
   
   // Support & Reviews state
   const [tickets, setTickets] = useState<any[]>([]);
@@ -200,6 +202,7 @@ export default function AppHome() {
           setCustomerBookings(bookData.data.bookings);
         } else if (currentUser.role === 'PROVIDER') {
           setProviderBookings(bookData.data.bookings);
+          fetchProviderServices();
         } else if (currentUser.role === 'ADMIN') {
           setAllBookings(bookData.data.bookings);
         }
@@ -527,6 +530,50 @@ export default function AppHome() {
       }
     } catch {
       alert('Error submitting KYC documents.');
+    }
+  };
+
+  const fetchProviderServices = async () => {
+    try {
+      const res = await fetch('/api/v1/provider/services', {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProviderServicesList(data.data.services);
+      }
+    } catch (err) {
+      console.error('Failed to load provider services', err);
+    }
+  };
+
+  const handleSaveProviderServices = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingServices(true);
+    try {
+      const selectedIds = providerServicesList
+        .filter(s => s.isOffered)
+        .map(s => s.id);
+
+      const res = await fetch('/api/v1/provider/services', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ serviceIds: selectedIds })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Services updated successfully! Jobs will be auto-assigned matching these selections.');
+        refreshDashboardData();
+      } else {
+        alert(data.error?.message || 'Failed to update services.');
+      }
+    } catch {
+      alert('Error updating services.');
+    } finally {
+      setIsSavingServices(false);
     }
   };
 
@@ -1214,6 +1261,13 @@ export default function AppHome() {
                 <ShieldCheck size={18} />
                 <span>KYC Uploads</span>
               </div>
+              <div
+                className={`${styles.sidebarTab} ${subTab === 'services' ? styles.active : ''}`}
+                onClick={() => setSubTab('services')}
+              >
+                <Wrench size={18} />
+                <span>My Services</span>
+              </div>
             </aside>
 
             <main>
@@ -1357,6 +1411,65 @@ export default function AppHome() {
                         Upload & Submit Verification
                       </button>
                     </div>
+                  )}
+                </div>
+              )}
+
+              {subTab === 'services' && (
+                <div className="card" style={{ maxWidth: '600px' }}>
+                  <h2 style={{ marginBottom: '8px' }}>My Services</h2>
+                  <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', marginBottom: '24px' }}>
+                    Select the work options you are capable of performing. Our auto-matching algorithm will assign bookings to you based on these selections.
+                  </p>
+
+                  {providerServicesList.length === 0 ? (
+                    <p style={{ color: 'var(--color-text-muted)' }}>Loading services list...</p>
+                  ) : (
+                    <form onSubmit={handleSaveProviderServices}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+                        {providerServicesList.map((service, idx) => (
+                          <label
+                            key={service.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '12px',
+                              padding: '12px',
+                              border: '1px solid var(--color-border)',
+                              borderRadius: 'var(--radius-sm)',
+                              cursor: 'pointer',
+                              backgroundColor: service.isOffered ? 'rgba(72, 187, 120, 0.05)' : 'transparent',
+                              transition: 'background-color 0.2s ease'
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                              checked={!!service.isOffered}
+                              onChange={(e) => {
+                                const updated = [...providerServicesList];
+                                updated[idx].isOffered = e.target.checked;
+                                setProviderServicesList(updated);
+                              }}
+                            />
+                            <div>
+                              <div style={{ fontWeight: 'bold', fontSize: '15px' }}>{service.name}</div>
+                              <div style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
+                                Category: {service.categoryName} • Base Rate: ₹{service.price}
+                              </div>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                      <button
+                        type="submit"
+                        className="btn btn-primary"
+                        style={{ width: '100%' }}
+                        disabled={isSavingServices}
+                      >
+                        {isSavingServices ? 'Saving Changes...' : 'Save Services Configurations'}
+                      </button>
+                    </form>
                   )}
                 </div>
               )}
