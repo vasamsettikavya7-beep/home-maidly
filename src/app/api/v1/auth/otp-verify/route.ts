@@ -5,7 +5,7 @@ import { db } from '@/lib/db';
 
 export async function POST(req: NextRequest) {
   try {
-    const { phone, otp, name, role } = await req.json();
+    const { phone, otp, name, role, action } = await req.json();
 
     if (!phone || !otp) {
       return generateApiResponse(false, null, 'Phone number and OTP code are required.', 400, 'BAD_REQUEST');
@@ -25,6 +25,14 @@ export async function POST(req: NextRequest) {
         providerProfile: true,
       },
     });
+
+    if (action === 'login' && !user) {
+      return generateApiResponse(false, null, 'Phone number is not registered. Please register first.', 404, 'USER_NOT_FOUND');
+    }
+
+    if (action === 'register' && user) {
+      return generateApiResponse(false, null, 'Phone number is already registered. Please log in instead.', 400, 'USER_ALREADY_EXISTS');
+    }
 
     let isNewUser = false;
 
