@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
       return generateApiResponse(false, null, 'Unauthorized. Helper access required.', 401, 'UNAUTHORIZED');
     }
 
-    const { documentType, documentUrl } = await req.json();
+    const { documentType, documentUrl, bankName, bankAccountNumber, bankIfscCode } = await req.json();
     if (!documentType) {
       return generateApiResponse(false, null, 'Document type is required.', 400, 'BAD_REQUEST');
     }
@@ -21,7 +21,10 @@ export async function POST(req: NextRequest) {
       data: {
         kycStatus: 'PENDING_VERIFICATION',
         kycDocumentType: documentType,
-        kycDocumentUrl: documentUrl || 'uploaded_file.pdf'
+        kycDocumentUrl: documentUrl || 'uploaded_file.pdf',
+        bankName: bankName || null,
+        bankAccountNumber: bankAccountNumber || null,
+        bankIfscCode: bankIfscCode || null
       }
     });
 
