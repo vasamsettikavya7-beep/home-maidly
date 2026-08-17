@@ -105,6 +105,7 @@ export default function AppHome() {
   const [reviewBehavior, setReviewBehavior] = useState<number>(5);
   const [reviewPunctuality, setReviewPunctuality] = useState<number>(5);
   const [kycDocType, setKycDocType] = useState<string>('Aadhaar Card (India)');
+  const [kycFile, setKycFile] = useState<File | null>(null);
 
   // Admin Data
   const [adminAnalytics, setAdminAnalytics] = useState<any>(null);
@@ -496,6 +497,11 @@ export default function AppHome() {
   };
 
   const handleProviderSubmitKyc = async () => {
+    if (!kycFile) {
+      alert('Please select a document photo/file to upload first.');
+      return;
+    }
+
     try {
       const res = await fetch('/api/v1/provider/kyc', {
         method: 'POST',
@@ -505,7 +511,7 @@ export default function AppHome() {
         },
         body: JSON.stringify({
           documentType: kycDocType,
-          documentUrl: 'kyc_verification_doc.pdf'
+          documentUrl: kycFile.name || 'kyc_verification_doc.pdf'
         })
       });
       const data = await res.json();
@@ -514,6 +520,7 @@ export default function AppHome() {
         const updatedUser = { ...currentUser, kycStatus: 'PENDING_VERIFICATION' };
         setCurrentUser(updatedUser);
         localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+        setKycFile(null); // Clear selected file
         refreshDashboardData();
       } else {
         alert(data.error?.message || 'Failed to submit KYC.');
@@ -1334,7 +1341,13 @@ export default function AppHome() {
                       </div>
                       <div className="form-group">
                         <label>Document Photo Upload (PDF/Image)</label>
-                        <input type="file" className="form-input" />
+                        <input
+                          type="file"
+                          className="form-input"
+                          onChange={(e) => setKycFile(e.target.files ? e.target.files[0] : null)}
+                          accept=".pdf,.png,.jpg,.jpeg"
+                          required
+                        />
                       </div>
                       <button
                         className="btn btn-primary"
