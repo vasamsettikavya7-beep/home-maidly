@@ -1558,7 +1558,7 @@ export default function AppHome() {
                             <div>
                               <div style={{ fontWeight: 'bold', fontSize: '15px' }}>{service.name}</div>
                               <div style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
-                                Category: {service.categoryName} • Base Rate: ₹{service.price}
+                                Category: {service.categoryName}
                               </div>
                             </div>
                           </label>
