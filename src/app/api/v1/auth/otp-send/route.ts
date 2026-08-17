@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { generateOTP, sendOTP } from '@/lib/auth';
+import { db } from '@/lib/db';
 import { generateApiResponse } from '@/lib/auth-helper';
 
 export async function POST(req: NextRequest) {
@@ -15,18 +15,14 @@ export async function POST(req: NextRequest) {
       phone = `+91${phone}`;
     }
 
-    // Generate random 6-digit OTP
-    const otp = generateOTP();
+    // Check if the user is already registered in the database
+    const existingUser = await db.user.findUnique({
+      where: { phone }
+    });
 
-    const dispatch = sendOTP(phone, otp);
-
-    if (!dispatch.success) {
-      return generateApiResponse(false, null, dispatch.message, 429, 'RATE_LIMIT_EXCEEDED');
-    }
-
-    return generateApiResponse(true, { phone }, 'OTP sent successfully.');
+    return generateApiResponse(true, { phone, exists: !!existingUser }, 'User check completed.');
   } catch (error: any) {
     console.error('[OTP Send Route Error]', error);
-    return generateApiResponse(false, null, 'Failed to send OTP. Please try again.', 500, 'OTP_SEND_FAILED');
+    return generateApiResponse(false, null, 'Failed to complete user check.', 500, 'USER_CHECK_FAILED');
   }
 }
