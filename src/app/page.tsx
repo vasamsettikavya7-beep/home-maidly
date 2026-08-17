@@ -1293,10 +1293,11 @@ export default function AppHome() {
             <h3>🏠 Home Maidly</h3>
             <p style={{ color: 'var(--color-text-muted)', fontSize: '13px' }}>Trusted Help. Happier Homes.</p>
           </div>
-          <div style={{ display: 'flex', gap: '24px' }}>
+          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Privacy Policy</span>
             <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Terms of Service</span>
-            <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Contact Help: support@homemaidly.com</span>
+            <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Contact Help: annaiahabhiraju7@gmail.com</span>
+            <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Call Us: 9380850568</span>
           </div>
         </div>
       </footer>
