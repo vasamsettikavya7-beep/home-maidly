@@ -11,10 +11,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate random 6-digit OTP
-    // For local convenience, we send '123456' for test phone numbers
-    const otp = phone.endsWith('0000') || phone === '+919876543210' || phone === '+919999999999' || phone === '+918888888888' || phone === '+917777777777' || phone === '+916666666666'
-      ? '123456'
-      : generateOTP();
+    const otp = generateOTP();
 
     const dispatch = sendOTP(phone, otp);
 
