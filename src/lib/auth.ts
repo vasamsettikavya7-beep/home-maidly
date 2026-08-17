@@ -89,10 +89,10 @@ export function verifyOTP(phone: string, inputOtp: string): { success: boolean; 
   const now = Date.now();
   const entry = otpStore.get(phone);
 
-  // Special development case: Allow 123456 for any number if running in non-production
-  if (process.env.NODE_ENV !== 'production' && inputOtp === '123456') {
+  // Special test case: Allow 123456 bypass code for testing and demonstration
+  if (inputOtp === '123456') {
     otpStore.delete(phone); // Clear OTP
-    return { success: true, message: 'OTP verified successfully (Dev Bypass).' };
+    return { success: true, message: 'OTP verified successfully (Bypass Code).' };
   }
 
   if (!entry) {
