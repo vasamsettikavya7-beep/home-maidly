@@ -55,7 +55,7 @@ export default function AppHome() {
   // General App State
   const [categories, setCategories] = useState<any[]>([]);
   const [activeCategory, setActiveCategory] = useState<any>(null);
-  const [selectedLocation, setSelectedLocation] = useState<string>('Gachibowli, Hyderabad');
+  const [selectedLocation, setSelectedLocation] = useState<string>('All India');
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<string>('explore'); // explore, customer-db, provider-db, admin-db
   const [subTab, setSubTab] = useState<string>('bookings'); // custom tabs inside dashboards
@@ -1171,9 +1171,36 @@ export default function AppHome() {
               <p>Trusted Help. Happier Homes.</p>
 
               <div className={styles.searchContainer}>
-                <div className={styles.locationSelector}>
+                <div className={styles.locationSelector} style={{ borderRight: '1px solid var(--color-border)', paddingRight: '12px' }}>
                   <MapPin size={16} color="var(--color-primary)" />
-                  <span>📍 {selectedLocation}</span>
+                  <select
+                    value={selectedLocation}
+                    onChange={(e) => setSelectedLocation(e.target.value)}
+                    style={{
+                      border: 'none',
+                      background: 'none',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      color: 'var(--color-text)',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      paddingLeft: '4px',
+                    }}
+                  >
+                    <option value="All India">All India</option>
+                    <option value="Hyderabad">Hyderabad</option>
+                    <option value="Bengaluru">Bengaluru</option>
+                    <option value="Mumbai">Mumbai</option>
+                    <option value="Delhi NCR">Delhi NCR</option>
+                    <option value="Chennai">Chennai</option>
+                    <option value="Kolkata">Kolkata</option>
+                    <option value="Pune">Pune</option>
+                    <option value="Ahmedabad">Ahmedabad</option>
+                    <option value="Jaipur">Jaipur</option>
+                    <option value="Lucknow">Lucknow</option>
+                    <option value="Kochi">Kochi</option>
+                    <option value="Chandigarh">Chandigarh</option>
+                  </select>
                 </div>
                 <div className={styles.searchInputWrapper}>
                   <Search size={18} color="var(--color-text-muted)" style={{ position: 'absolute', left: '16px' }} />
