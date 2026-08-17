@@ -89,11 +89,6 @@ export function verifyOTP(phone: string, inputOtp: string): { success: boolean; 
   const now = Date.now();
   const entry = otpStore.get(phone);
 
-  // Special test case: Allow 123456 bypass code for testing and demonstration
-  if (inputOtp === '123456') {
-    otpStore.delete(phone); // Clear OTP
-    return { success: true, message: 'OTP verified successfully (Bypass Code).' };
-  }
 
   if (!entry) {
     return { success: false, message: 'OTP not found. Please request a new one.' };
