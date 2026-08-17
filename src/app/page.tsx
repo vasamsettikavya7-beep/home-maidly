@@ -27,6 +27,8 @@ import {
   FileText
 } from 'lucide-react';
 import styles from './page.module.css';
+import { auth } from '@/lib/firebase';
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 
 // Mock users for quick developer switching
 const DEVELOPER_MOCK_USERS = [
@@ -48,6 +50,7 @@ export default function AppHome() {
   const [otpSent, setOtpSent] = useState<boolean>(false);
   const [loginMessage, setLoginMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
   const [isAdminLogin, setIsAdminLogin] = useState<boolean>(false);
+  const [confirmationResult, setConfirmationResult] = useState<any>(null);
 
   // General App State
   const [categories, setCategories] = useState<any[]>([]);
@@ -281,23 +284,13 @@ export default function AppHome() {
     }
   };
 
-  const handleDirectAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginMessage(null);
-    if (!authPhone) return;
-
-    let targetPhone = authPhone.trim();
-    if (targetPhone.length === 10 && /^\d+$/.test(targetPhone)) {
-      targetPhone = `+91${targetPhone}`;
-      setAuthPhone(targetPhone);
-    }
-
+  const finalizeBackendLogin = async (phoneStr: string) => {
     try {
       const res = await fetch('/api/v1/auth/otp-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone: targetPhone,
+          phone: phoneStr,
           name: authMode === 'register' ? authName : undefined,
           role: authMode === 'register' ? 'PROVIDER' : 'CUSTOMER',
           action: authMode,
@@ -312,6 +305,8 @@ export default function AppHome() {
         setCurrentUser(userProfile);
         setShowLoginModal(false);
         setOtpSent(false);
+        setConfirmationResult(null);
+        setAuthOtp('');
 
         if (userProfile.role === 'CUSTOMER') {
           setActiveTab('explore');
@@ -326,7 +321,82 @@ export default function AppHome() {
         setLoginMessage({ type: 'error', text: data.error?.message || 'Login failed.' });
       }
     } catch {
-      setLoginMessage({ type: 'error', text: 'API error.' });
+      setLoginMessage({ type: 'error', text: 'API verification error.' });
+    }
+  };
+
+  const handleDirectAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginMessage(null);
+    if (!authPhone) return;
+
+    let targetPhone = authPhone.trim();
+    if (targetPhone.length === 10 && /^\d+$/.test(targetPhone)) {
+      targetPhone = `+91${targetPhone}`;
+      setAuthPhone(targetPhone);
+    }
+
+    // Bypass Firebase OTP for Admin and Developer mock test numbers
+    const isMockBypass = [
+      '+919999999999', // Admin
+      '+918888888888', // Ramesh
+      '+917777777777', // Lakshmi
+      '+916666666666', // Priya
+      '+915555555555'  // Vikram
+    ].includes(targetPhone);
+
+    if (isMockBypass) {
+      await finalizeBackendLogin(targetPhone);
+      return;
+    }
+
+    // Real Outbound Firebase SMS OTP verification Flow
+    try {
+      setLoginMessage({ type: 'success', text: 'Sending verification code...' });
+      
+      let verifier = (window as any).recaptchaVerifier;
+      if (!verifier) {
+        verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          size: 'invisible'
+        });
+        (window as any).recaptchaVerifier = verifier;
+      }
+
+      const confirmation = await signInWithPhoneNumber(auth, targetPhone, verifier);
+      setConfirmationResult(confirmation);
+      setOtpSent(true);
+      setLoginMessage({ type: 'success', text: 'Verification code sent to your mobile!' });
+    } catch (err: any) {
+      console.error('Firebase Auth Error:', err);
+      setLoginMessage({ 
+        type: 'error', 
+        text: err.message?.includes('auth/invalid-api-key') 
+          ? 'Firebase API configuration error. Please check your project settings.'
+          : `Failed to send SMS: ${err.message || 'Unknown error'}`
+      });
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginMessage(null);
+    if (!authOtp || !confirmationResult) {
+      setLoginMessage({ type: 'error', text: 'Missing session or verification code.' });
+      return;
+    }
+
+    try {
+      setLoginMessage({ type: 'success', text: 'Verifying code...' });
+      const userCredential = await confirmationResult.confirm(authOtp);
+      
+      if (userCredential.user) {
+        await finalizeBackendLogin(authPhone);
+      } else {
+        setLoginMessage({ type: 'error', text: 'Invalid verification code.' });
+      }
+    } catch (err: any) {
+      console.error('OTP Verification Error:', err);
+      setLoginMessage({ type: 'error', text: 'Invalid verification code entered. Please try again.' });
     }
   };
 
@@ -2152,35 +2222,70 @@ export default function AppHome() {
                 </div>
               )}
 
-              <form onSubmit={handleDirectAuth}>
-                {authMode === 'register' && (
+              {!otpSent ? (
+                <form onSubmit={handleDirectAuth}>
+                  {authMode === 'register' && (
+                    <div className="form-group">
+                      <label>Full Name</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Enter your full name"
+                        value={authName}
+                        onChange={(e) => setAuthName(e.target.value)}
+                        required
+                      />
+                    </div>
+                  )}
                   <div className="form-group">
-                    <label>Full Name</label>
+                    <label>Mobile Number</label>
                     <input
-                      type="text"
+                      type="tel"
                       className="form-input"
-                      placeholder="Enter your full name"
-                      value={authName}
-                      onChange={(e) => setAuthName(e.target.value)}
+                      placeholder="Enter 10-digit number"
+                      value={authPhone}
+                      onChange={(e) => setAuthPhone(e.target.value)}
                       required
                     />
                   </div>
-                )}
-                <div className="form-group">
-                  <label>Mobile Number</label>
-                  <input
-                    type="tel"
-                    className="form-input"
-                    placeholder="Enter 10-digit number"
-                    value={authPhone}
-                    onChange={(e) => setAuthPhone(e.target.value)}
-                    required
-                  />
-                </div>
-                <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '8px' }}>
-                  {isAdminLogin ? 'Admin Login Now' : authMode === 'login' ? 'Login Now' : 'Register & Login'}
-                </button>
-              </form>
+                  <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '8px' }}>
+                    {isAdminLogin ? 'Admin Login Now' : authMode === 'login' ? 'Login Now' : 'Register & Login'}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleVerifyOtp}>
+                  <div className="form-group">
+                    <label>Enter 6-digit OTP Code</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      maxLength={6}
+                      placeholder="e.g. 123456"
+                      value={authOtp}
+                      onChange={(e) => setAuthOtp(e.target.value)}
+                      required
+                      autoFocus
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '8px' }}>
+                    Verify Code
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    style={{ width: '100%', marginTop: '8px' }}
+                    onClick={() => {
+                      setOtpSent(false);
+                      setConfirmationResult(null);
+                      setAuthOtp('');
+                      setLoginMessage(null);
+                    }}
+                  >
+                    Back to Mobile
+                  </button>
+                </form>
+              )}
+              <div id="recaptcha-container"></div>
             </div>
           </div>
         </div>
