@@ -34,7 +34,17 @@ export async function GET(req: NextRequest) {
       isOffered: offeredServiceIds.includes(s.id)
     }));
 
-    return generateApiResponse(true, { services: formattedServices });
+    return generateApiResponse(true, {
+      services: formattedServices,
+      profile: {
+        experienceYears: providerProfile.experienceYears,
+        languages: providerProfile.languages,
+        serviceAreas: providerProfile.serviceAreas,
+        bankName: providerProfile.bankName,
+        bankAccountNumber: providerProfile.bankAccountNumber,
+        bankIfscCode: providerProfile.bankIfscCode
+      }
+    });
   } catch (error: any) {
     console.error('[Get Provider Services Error]', error);
     return generateApiResponse(false, null, 'Failed to fetch services.', 500, 'SERVER_ERROR');
@@ -57,19 +67,41 @@ export async function POST(req: NextRequest) {
       return generateApiResponse(false, null, 'Provider profile not found.', 404, 'NOT_FOUND');
     }
 
-    const { serviceIds } = await req.json();
+    const {
+      serviceIds,
+      experienceYears,
+      languages,
+      serviceAreas,
+      bankName,
+      bankAccountNumber,
+      bankIfscCode
+    } = await req.json();
+
     if (!Array.isArray(serviceIds)) {
       return generateApiResponse(false, null, 'Invalid service selection.', 400, 'BAD_REQUEST');
     }
 
     // Perform inside transaction to ensure atomicity
     await db.$transaction(async (tx) => {
-      // 1. Delete all existing service offerings for this provider
+      // Update helper profile details
+      await tx.providerProfile.update({
+        where: { id: providerProfile.id },
+        data: {
+          experienceYears: experienceYears !== undefined ? (typeof experienceYears === 'number' ? experienceYears : parseInt(experienceYears) || 0) : providerProfile.experienceYears,
+          languages: languages !== undefined ? languages : providerProfile.languages,
+          serviceAreas: serviceAreas !== undefined ? serviceAreas : providerProfile.serviceAreas,
+          bankName: bankName !== undefined ? bankName : providerProfile.bankName,
+          bankAccountNumber: bankAccountNumber !== undefined ? bankAccountNumber : providerProfile.bankAccountNumber,
+          bankIfscCode: bankIfscCode !== undefined ? bankIfscCode : providerProfile.bankIfscCode
+        }
+      });
+
+      // Delete all existing service offerings for this provider
       await tx.providerService.deleteMany({
         where: { providerId: providerProfile.id }
       });
 
-      // 2. Create new offerings
+      // Create new offerings
       if (serviceIds.length > 0) {
         await tx.providerService.createMany({
           data: serviceIds.map(sId => ({
@@ -80,7 +112,7 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    return generateApiResponse(true, null, 'Services updated successfully!');
+    return generateApiResponse(true, null, 'Services and profile updated successfully!');
   } catch (error: any) {
     console.error('[Save Provider Services Error]', error);
     return generateApiResponse(false, null, 'Failed to update services.', 500, 'SERVER_ERROR');
