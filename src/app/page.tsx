@@ -94,6 +94,7 @@ export default function AppHome() {
   const [showBookingDetailsModal, setShowBookingDetailsModal] = useState<boolean>(false);
   const [providerServicesList, setProviderServicesList] = useState<any[]>([]);
   const [isSavingServices, setIsSavingServices] = useState<boolean>(false);
+  const [isLoadingServices, setIsLoadingServices] = useState<boolean>(true);
   
   // Support & Reviews state
   const [tickets, setTickets] = useState<any[]>([]);
@@ -540,6 +541,7 @@ export default function AppHome() {
   };
 
   const fetchProviderServices = async () => {
+    setIsLoadingServices(true);
     try {
       const res = await fetch('/api/v1/provider/services', {
         headers: { 'Authorization': `Bearer ${authToken}` }
@@ -550,6 +552,8 @@ export default function AppHome() {
       }
     } catch (err) {
       console.error('Failed to load provider services', err);
+    } finally {
+      setIsLoadingServices(false);
     }
   };
 
@@ -1454,8 +1458,12 @@ export default function AppHome() {
                     Select the work options you are capable of performing. Our auto-matching algorithm will assign bookings to you based on these selections.
                   </p>
 
-                  {providerServicesList.length === 0 ? (
+                  {isLoadingServices ? (
                     <p style={{ color: 'var(--color-text-muted)' }}>Loading services list...</p>
+                  ) : providerServicesList.length === 0 ? (
+                    <div style={{ padding: '20px 0', color: 'var(--color-error)' }}>
+                      ⚠️ No services are registered in the system database. Please ensure you have run the database seeder on Render.
+                    </div>
                   ) : (
                     <form onSubmit={handleSaveProviderServices}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
