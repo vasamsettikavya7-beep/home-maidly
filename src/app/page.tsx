@@ -413,6 +413,26 @@ export default function AppHome() {
         // Initial geocode
         updateLocationAddress(defaultLat, defaultLng);
 
+        // Geolocation auto-detection to capture current location
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              const uLat = pos.coords.latitude;
+              const uLng = pos.coords.longitude;
+              if (isMounted && mapInstance) {
+                mapInstance.setView([uLat, uLng], 15);
+                marker.setLatLng([uLat, uLng]);
+                setMapLoading(true);
+                updateLocationAddress(uLat, uLng);
+              }
+            },
+            (err) => {
+              console.warn('Geolocation failed or permission denied:', err.message);
+            },
+            { enableHighAccuracy: true, timeout: 6000 }
+          );
+        }
+
         // On marker drag end
         marker.on('dragend', () => {
           const position = marker.getLatLng();
