@@ -374,13 +374,21 @@ export default function AppHome() {
     try {
       setLoginMessage({ type: 'success', text: 'Sending verification code...' });
       
-      let verifier = (window as any).recaptchaVerifier;
-      if (!verifier) {
-        verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          size: 'invisible'
-        });
-        (window as any).recaptchaVerifier = verifier;
+      // Always destroy any existing verifier instance on window to avoid referencing unmounted elements
+      if ((window as any).recaptchaVerifier) {
+        try {
+          (window as any).recaptchaVerifier.clear();
+        } catch (e) {
+          console.log('Error clearing verifier:', e);
+        }
+        (window as any).recaptchaVerifier = null;
       }
+
+      // Create a fresh verifier instance targeting the current active recaptcha-container in the DOM
+      const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible'
+      });
+      (window as any).recaptchaVerifier = verifier;
 
       const confirmation = await signInWithPhoneNumber(auth, targetPhone, verifier);
       setConfirmationResult(confirmation);
@@ -388,6 +396,13 @@ export default function AppHome() {
       setLoginMessage({ type: 'success', text: 'Verification code sent to your mobile!' });
     } catch (err: any) {
       console.error('Firebase Auth Error:', err);
+      // Clean up on error so next attempt starts fresh
+      if ((window as any).recaptchaVerifier) {
+        try {
+          (window as any).recaptchaVerifier.clear();
+        } catch (e) {}
+        (window as any).recaptchaVerifier = null;
+      }
       setLoginMessage({ 
         type: 'error', 
         text: err.message?.includes('auth/invalid-api-key') 
