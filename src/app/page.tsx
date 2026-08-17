@@ -1002,19 +1002,35 @@ export default function AppHome() {
       <header className={styles.header}>
         <div className="container">
           <div className={styles.headerContent}>
-            <div className={styles.logo} onClick={() => setActiveTab('explore')}>
+            <div
+              className={styles.logo}
+              onClick={() => {
+                if (currentUser?.role === 'PROVIDER') {
+                  setActiveTab('provider-db');
+                  setSubTab('jobs');
+                } else if (currentUser?.role === 'ADMIN') {
+                  setActiveTab('admin-db');
+                  setSubTab('analytics');
+                } else {
+                  setActiveTab('explore');
+                  setActiveCategory(null);
+                }
+              }}
+            >
               <span>🏠</span> Home Maidly
             </div>
             <nav className={styles.nav}>
-              <span
-                className={`${styles.navLink} ${activeTab === 'explore' ? styles.active : ''}`}
-                onClick={() => {
-                  setActiveTab('explore');
-                  setActiveCategory(null);
-                }}
-              >
-                Find Services
-              </span>
+              {(!currentUser || currentUser.role !== 'PROVIDER') && (
+                <span
+                  className={`${styles.navLink} ${activeTab === 'explore' ? styles.active : ''}`}
+                  onClick={() => {
+                    setActiveTab('explore');
+                    setActiveCategory(null);
+                  }}
+                >
+                  Find Services
+                </span>
+              )}
 
               {currentUser && currentUser.role === 'CUSTOMER' && (
                 <span
