@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { authorizeRoles, generateApiResponse } from '@/lib/auth-helper';
+import { sendSmsNotification } from '@/lib/sms/fast2sms';
 
 // POST: Admin manually assigns a helper to a booking
 export async function POST(req: NextRequest) {
@@ -14,7 +15,8 @@ export async function POST(req: NextRequest) {
 
       // Check if booking exists
       const booking = await db.booking.findUnique({
-        where: { id: bookingId }
+        where: { id: bookingId },
+        include: { customer: { include: { user: true } } }
       });
 
       if (!booking) {
@@ -63,6 +65,18 @@ export async function POST(req: NextRequest) {
 
         return b;
       });
+
+      // Send Fast2SMS assignment SMS to helper
+      sendSmsNotification(
+        provider.user.phone,
+        `You have a new work assignment! Booking ${booking.bookingNumber} has been manually assigned to you by admin. Open Pro Panel to check details.`
+      );
+
+      // Send Fast2SMS assignment SMS to customer
+      sendSmsNotification(
+        booking.customer.user.phone,
+        `Your booking ${booking.bookingNumber} has been manually assigned to helper ${provider.user.name} (${provider.user.phone}).`
+      );
 
       return generateApiResponse(
         true,
