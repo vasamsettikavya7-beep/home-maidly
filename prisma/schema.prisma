@@ -36,7 +36,7 @@ model ProviderProfile {
   userId             String   @unique
   user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   photoUrl           String?
-  kycStatus          String   @default("PENDING_VERIFICATION") // "PENDING_VERIFICATION", "VERIFIED", "ACTIVE", "TEMPORARILY_SUSPENDED", "REJECTED", "BLOCKED"
+  kycStatus          String   @default("NOT_SUBMITTED") // "NOT_SUBMITTED", "PENDING_VERIFICATION", "VERIFIED", "ACTIVE", "TEMPORARILY_SUSPENDED", "REJECTED", "BLOCKED"
   experienceYears    Int      @default(0)
   rating             Float    @default(0.0)
   completedJobsCount Int      @default(0)
