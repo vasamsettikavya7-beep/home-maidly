@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
         },
       });
 
-      let slotAvailable = false;
+      let slotAvailable = availableProviders.length === 0;
 
       for (const p of availableProviders) {
         const doubleBooked = await db.booking.findFirst({
