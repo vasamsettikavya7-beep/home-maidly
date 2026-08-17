@@ -264,7 +264,7 @@ export default function AppHome() {
       const data = await res.json();
       if (data.success) {
         setOtpSent(true);
-        setLoginMessage({ type: 'success', text: 'OTP sent! Use 123456 for test accounts.' });
+        setLoginMessage({ type: 'success', text: 'OTP sent successfully!' });
       } else {
         setLoginMessage({ type: 'error', text: data.error?.message || 'Failed to send OTP.' });
       }
@@ -1587,7 +1587,7 @@ export default function AppHome() {
               ) : (
                 <form onSubmit={handleVerifyOtp}>
                   <p style={{ fontSize: '14px', marginBottom: '16px', color: 'var(--color-text-muted)' }}>
-                    OTP sent to {authPhone}. For test accounts, enter bypass code <strong>123456</strong>.
+                    OTP sent to {authPhone}. Please enter the 6-digit OTP code to continue.
                   </p>
                   <div className="form-group">
                     <label>Enter 6-Digit OTP</label>
