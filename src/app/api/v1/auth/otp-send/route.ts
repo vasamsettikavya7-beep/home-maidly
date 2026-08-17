@@ -4,10 +4,15 @@ import { generateApiResponse } from '@/lib/auth-helper';
 
 export async function POST(req: NextRequest) {
   try {
-    const { phone } = await req.json();
+    let { phone } = await req.json();
 
     if (!phone || typeof phone !== 'string') {
       return generateApiResponse(false, null, 'Valid phone number is required.', 400, 'INVALID_PHONE');
+    }
+
+    phone = phone.trim().replace(/[\s-]/g, '');
+    if (phone.length === 10 && /^\d+$/.test(phone)) {
+      phone = `+91${phone}`;
     }
 
     // Generate random 6-digit OTP
