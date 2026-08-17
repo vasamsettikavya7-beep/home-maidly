@@ -76,6 +76,16 @@ export default function AppHome() {
   const [paymentSignature, setPaymentSignature] = useState<string>('success'); // success, fail, timeout
   const [createdBooking, setCreatedBooking] = useState<any>(null);
   
+  // New Address Map & Manual Form States
+  const [showAddAddressForm, setShowAddAddressForm] = useState<boolean>(false);
+  const [addressMode, setAddressMode] = useState<'map' | 'manual'>('map');
+  const [newAddressTitle, setNewAddressTitle] = useState<string>('Home');
+  const [newAddressLine, setNewAddressLine] = useState<string>('');
+  const [newAddressFlat, setNewAddressFlat] = useState<string>('');
+  const [newAddressLandmark, setNewAddressLandmark] = useState<string>('');
+  const [newAddressCity, setNewAddressCity] = useState<string>('Hyderabad');
+  const [mapLoading, setMapLoading] = useState<boolean>(false);
+  
   // Dashboards View Data
   const [customerBookings, setCustomerBookings] = useState<any[]>([]);
   const [providerBookings, setProviderBookings] = useState<any[]>([]);
@@ -313,6 +323,161 @@ export default function AppHome() {
     setAuthToken('');
     setCurrentUser(null);
     setActiveTab('explore');
+  };
+
+  // Leaflet Map Initialization and Script Loader
+  useEffect(() => {
+    if (!showCheckoutModal || checkoutStep !== 2 || !showAddAddressForm || addressMode !== 'map') {
+      return;
+    }
+
+    let mapInstance: any = null;
+    let isMounted = true;
+
+    const loadLeaflet = () => {
+      // 1. Add CSS
+      if (!document.getElementById('leaflet-css')) {
+        const link = document.createElement('link');
+        link.id = 'leaflet-css';
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
+      }
+
+      // 2. Add JS
+      if (!document.getElementById('leaflet-js')) {
+        const script = document.createElement('script');
+        script.id = 'leaflet-js';
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = () => {
+          if (isMounted) initMap();
+        };
+        document.body.appendChild(script);
+      } else {
+        // Already loaded, initialize
+        if ((window as any).L) {
+          setTimeout(initMap, 100);
+        }
+      }
+    };
+
+    const initMap = () => {
+      const L = (window as any).L;
+      if (!L) return;
+
+      const container = document.getElementById('checkout-map');
+      if (!container) return;
+
+      // Clean up previous instance if present
+      if (container && (container as any)._leaflet_id) {
+        return;
+      }
+
+      setMapLoading(true);
+      const defaultLat = 17.448293;
+      const defaultLng = 78.374112;
+
+      try {
+        mapInstance = L.map('checkout-map').setView([defaultLat, defaultLng], 15);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap'
+        }).addTo(mapInstance);
+
+        // Create a marker
+        const marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(mapInstance);
+
+        // Function to handle location geocoding
+        const updateLocationAddress = async (lat: number, lng: number) => {
+          try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+            const data = await res.json();
+            if (isMounted && data && data.display_name) {
+              setNewAddressLine(data.display_name);
+              if (data.address) {
+                if (data.address.suburb || data.address.neighbourhood) {
+                  setNewAddressLandmark(data.address.suburb || data.address.neighbourhood || '');
+                }
+                if (data.address.city || data.address.town || data.address.village) {
+                  setNewAddressCity(data.address.city || data.address.town || data.address.village || 'Hyderabad');
+                }
+              }
+            }
+          } catch (e) {
+            console.error('Reverse geocoding failed', e);
+          } finally {
+            if (isMounted) setMapLoading(false);
+          }
+        };
+
+        // Initial geocode
+        updateLocationAddress(defaultLat, defaultLng);
+
+        // On marker drag end
+        marker.on('dragend', () => {
+          const position = marker.getLatLng();
+          setMapLoading(true);
+          updateLocationAddress(position.lat, position.lng);
+        });
+
+        // On map click (move marker)
+        mapInstance.on('click', (e: any) => {
+          const position = e.latlng;
+          marker.setLatLng(position);
+          setMapLoading(true);
+          updateLocationAddress(position.lat, position.lng);
+        });
+      } catch (err) {
+        console.error('Failed to init Leaflet Map', err);
+      }
+    };
+
+    // Load Leaflet resources
+    loadLeaflet();
+
+    return () => {
+      isMounted = false;
+      if (mapInstance) {
+        try {
+          mapInstance.remove();
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    };
+  }, [showCheckoutModal, checkoutStep, showAddAddressForm, addressMode]);
+
+  const handleSaveNewAddress = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAddressLine) {
+      alert('Please specify an address.');
+      return;
+    }
+
+    const fullAddressString = [
+      newAddressFlat ? `Flat/House No: ${newAddressFlat}` : '',
+      newAddressLine,
+      newAddressLandmark ? `Landmark: ${newAddressLandmark}` : '',
+      newAddressCity
+    ].filter(Boolean).join(', ');
+
+    const newAddrObj = {
+      id: `addr_new_${Date.now()}`,
+      title: newAddressTitle,
+      addressLine: fullAddressString,
+      lat: 17.448293,
+      lng: 78.374112,
+    };
+
+    setSavedAddresses([...savedAddresses, newAddrObj]);
+    setSelectedAddressId(newAddrObj.id);
+
+    // Reset address form values
+    setShowAddAddressForm(false);
+    setNewAddressFlat('');
+    setNewAddressLine('');
+    setNewAddressLandmark('');
+    setNewAddressTitle('Home');
   };
 
   // Booking Flow Controls
@@ -1467,21 +1632,172 @@ export default function AppHome() {
 
               {checkoutStep === 2 && (
                 <div>
-                  <h4 style={{ marginBottom: '12px' }}>Select Booking Address</h4>
-                  <div className="sidebar" style={{ gap: '12px' }}>
-                    {savedAddresses.map((addr) => (
-                      <div
-                        key={addr.id}
-                        className={`${styles.servicePackageRow} ${selectedAddressId === addr.id ? styles.selected : ''}`}
-                        onClick={() => setSelectedAddressId(addr.id)}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <h4 style={{ margin: 0 }}>Select Booking Address</h4>
+                    {!showAddAddressForm && (
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => {
+                          setShowAddAddressForm(true);
+                          setAddressMode('map');
+                        }}
                       >
+                        + Add New
+                      </button>
+                    )}
+                  </div>
+
+                  {showAddAddressForm ? (
+                    <form onSubmit={handleSaveNewAddress} style={{ border: '1px solid var(--color-border)', padding: '16px', borderRadius: '8px', backgroundColor: 'var(--color-bg-light)' }}>
+                      <h5 style={{ fontWeight: 'bold', marginBottom: '12px' }}>New Address</h5>
+                      
+                      {/* Toggle Selector */}
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${addressMode === 'map' ? 'btn-primary' : 'btn-outline'}`}
+                          style={{ flex: 1 }}
+                          onClick={() => setAddressMode('map')}
+                        >
+                          📍 Choose on Map
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${addressMode === 'manual' ? 'btn-primary' : 'btn-outline'}`}
+                          style={{ flex: 1 }}
+                          onClick={() => setAddressMode('manual')}
+                        >
+                          ✍️ Enter Manually
+                        </button>
+                      </div>
+
+                      {addressMode === 'map' && (
                         <div>
-                          <h5 style={{ fontWeight: 'bold' }}>{addr.title}</h5>
-                          <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>{addr.addressLine}</p>
+                          <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
+                            Drag the pin on the map to mark your exact cleaning location.
+                          </p>
+                          <div id="checkout-map" style={{ height: '200px', width: '100%', borderRadius: '8px', border: '1px solid var(--color-border)', marginBottom: '12px', position: 'relative', overflow: 'hidden' }}>
+                            {mapLoading && (
+                              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, fontSize: '13px' }}>
+                                Resolving address location...
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="form-group">
+                        <label>House / Flat No / Block</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="e.g. Apartment 4B, 3rd Floor"
+                          value={newAddressFlat}
+                          onChange={(e) => setNewAddressFlat(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label>Street Address / Area</label>
+                        {addressMode === 'map' ? (
+                          <textarea
+                            className="form-input"
+                            style={{ minHeight: '60px', fontSize: '13px' }}
+                            value={newAddressLine}
+                            onChange={(e) => setNewAddressLine(e.target.value)}
+                            required
+                          />
+                        ) : (
+                          <input
+                            type="text"
+                            className="form-input"
+                            placeholder="e.g. 12th Main Road, Sector 3"
+                            value={newAddressLine}
+                            onChange={(e) => setNewAddressLine(e.target.value)}
+                            required
+                          />
+                        )}
+                      </div>
+
+                      <div className="grid grid-2">
+                        <div className="form-group">
+                          <label>Landmark</label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            placeholder="e.g. Near HDFC Bank"
+                            value={newAddressLandmark}
+                            onChange={(e) => setNewAddressLandmark(e.target.value)}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>City</label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            value={newAddressCity}
+                            onChange={(e) => setNewAddressCity(e.target.value)}
+                            required
+                          />
                         </div>
                       </div>
-                    ))}
-                  </div>
+
+                      <div className="form-group">
+                        <label>Save Address Label As</label>
+                        <select
+                          className="form-input"
+                          value={newAddressTitle}
+                          onChange={(e) => setNewAddressTitle(e.target.value)}
+                        >
+                          <option value="Home">🏠 Home</option>
+                          <option value="Office">🏢 Office</option>
+                          <option value="Other">📍 Other</option>
+                        </select>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                        <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
+                          Save & Select
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          style={{ flex: 1 }}
+                          onClick={() => {
+                            setShowAddAddressForm(false);
+                            setNewAddressFlat('');
+                            setNewAddressLine('');
+                            setNewAddressLandmark('');
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="sidebar" style={{ gap: '12px', display: 'flex', flexDirection: 'column' }}>
+                      {savedAddresses.length === 0 ? (
+                        <p style={{ color: 'var(--color-text-muted)', fontSize: '13px' }}>
+                          No saved addresses. Please click "+ Add New" to locate your address.
+                        </p>
+                      ) : (
+                        savedAddresses.map((addr) => (
+                          <div
+                            key={addr.id}
+                            className={`${styles.servicePackageRow} ${selectedAddressId === addr.id ? styles.selected : ''}`}
+                            onClick={() => setSelectedAddressId(addr.id)}
+                            style={{ cursor: 'pointer', padding: '12px', border: '1px solid var(--color-border)', borderRadius: '8px', display: 'flex', alignItems: 'center' }}
+                          >
+                            <div>
+                              <h5 style={{ fontWeight: 'bold', margin: 0 }}>{addr.title}</h5>
+                              <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: '4px 0 0 0' }}>{addr.addressLine}</p>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
