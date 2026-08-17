@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
           ...(targetRole === 'CUSTOMER'
             ? { customerProfile: { create: {} } }
             : targetRole === 'PROVIDER'
-            ? { providerProfile: { create: { kycStatus: 'PENDING_VERIFICATION' } } }
+            ? { providerProfile: { create: { kycStatus: 'NOT_SUBMITTED' } } }
             : {}),
         },
         include: {
