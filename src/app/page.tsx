@@ -250,39 +250,10 @@ export default function AppHome() {
     }
   };
 
-  const handleSendOtp = async (e: React.FormEvent) => {
+  const handleDirectAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginMessage(null);
     if (!authPhone) return;
-
-    let targetPhone = authPhone.trim();
-    if (targetPhone.length === 10 && /^\d+$/.test(targetPhone)) {
-      targetPhone = `+91${targetPhone}`;
-      setAuthPhone(targetPhone);
-    }
-
-    try {
-      const res = await fetch('/api/v1/auth/otp-send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: targetPhone }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setOtpSent(true);
-        setLoginMessage({ type: 'success', text: 'OTP sent successfully!' });
-      } else {
-        setLoginMessage({ type: 'error', text: data.error?.message || 'Failed to send OTP.' });
-      }
-    } catch {
-      setLoginMessage({ type: 'error', text: 'API error.' });
-    }
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginMessage(null);
-    if (!authPhone || !authOtp) return;
 
     let targetPhone = authPhone.trim();
     if (targetPhone.length === 10 && /^\d+$/.test(targetPhone)) {
@@ -296,7 +267,6 @@ export default function AppHome() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone: targetPhone,
-          otp: authOtp,
           name: authMode === 'register' ? authName : undefined,
           role: authMode === 'register' ? 'PROVIDER' : 'CUSTOMER',
           action: authMode,
@@ -322,7 +292,7 @@ export default function AppHome() {
           setSubTab('analytics');
         }
       } else {
-        setLoginMessage({ type: 'error', text: data.error?.message || 'Verification failed.' });
+        setLoginMessage({ type: 'error', text: data.error?.message || 'Login failed.' });
       }
     } catch {
       setLoginMessage({ type: 'error', text: 'API error.' });
@@ -1510,48 +1480,46 @@ export default function AppHome() {
               <button className="btn btn-outline btn-sm" onClick={() => setShowLoginModal(false)}>✕</button>
             </div>
             <div className={styles.modalBody}>
-              {!otpSent && (
-                <div style={{ display: 'flex', marginBottom: '20px', borderBottom: '1px solid var(--color-border)' }}>
-                  <button
-                    type="button"
-                    style={{
-                      flex: 1,
-                      padding: '10px',
-                      background: 'none',
-                      border: 'none',
-                      fontWeight: authMode === 'login' ? 'bold' : 'normal',
-                      borderBottom: authMode === 'login' ? '2px solid var(--color-primary)' : 'none',
-                      color: authMode === 'login' ? 'var(--color-primary)' : 'var(--color-text-muted)',
-                      cursor: 'pointer',
-                    }}
-                    onClick={() => {
-                      setAuthMode('login');
-                      setLoginMessage(null);
-                    }}
-                  >
-                    Customer Login
-                  </button>
-                  <button
-                    type="button"
-                    style={{
-                      flex: 1,
-                      padding: '10px',
-                      background: 'none',
-                      border: 'none',
-                      fontWeight: authMode === 'register' ? 'bold' : 'normal',
-                      borderBottom: authMode === 'register' ? '2px solid var(--color-primary)' : 'none',
-                      color: authMode === 'register' ? 'var(--color-primary)' : 'var(--color-text-muted)',
-                      cursor: 'pointer',
-                    }}
-                    onClick={() => {
-                      setAuthMode('register');
-                      setLoginMessage(null);
-                    }}
-                  >
-                    Helper Register
-                  </button>
-                </div>
-              )}
+              <div style={{ display: 'flex', marginBottom: '20px', borderBottom: '1px solid var(--color-border)' }}>
+                <button
+                  type="button"
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    background: 'none',
+                    border: 'none',
+                    fontWeight: authMode === 'login' ? 'bold' : 'normal',
+                    borderBottom: authMode === 'login' ? '2px solid var(--color-primary)' : 'none',
+                    color: authMode === 'login' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => {
+                    setAuthMode('login');
+                    setLoginMessage(null);
+                  }}
+                >
+                  Customer Login
+                </button>
+                <button
+                  type="button"
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    background: 'none',
+                    border: 'none',
+                    fontWeight: authMode === 'register' ? 'bold' : 'normal',
+                    borderBottom: authMode === 'register' ? '2px solid var(--color-primary)' : 'none',
+                    color: authMode === 'register' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => {
+                    setAuthMode('register');
+                    setLoginMessage(null);
+                  }}
+                >
+                  Helper Register
+                </button>
+              </div>
 
               {loginMessage && (
                 <div style={{
@@ -1566,65 +1534,35 @@ export default function AppHome() {
                 </div>
               )}
 
-              {!otpSent ? (
-                <form onSubmit={handleSendOtp}>
-                  {authMode === 'register' && (
-                    <div className="form-group">
-                      <label>Full Name</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        placeholder="Enter your full name"
-                        value={authName}
-                        onChange={(e) => setAuthName(e.target.value)}
-                        required
-                      />
-                    </div>
-                  )}
+              <form onSubmit={handleDirectAuth}>
+                {authMode === 'register' && (
                   <div className="form-group">
-                    <label>Mobile Number</label>
-                    <input
-                      type="tel"
-                      className="form-input"
-                      placeholder="+91XXXXXXXXXX"
-                      value={authPhone}
-                      onChange={(e) => setAuthPhone(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-                    Send One-Time Password
-                  </button>
-                </form>
-              ) : (
-                <form onSubmit={handleVerifyOtp}>
-                  <p style={{ fontSize: '14px', marginBottom: '16px', color: 'var(--color-text-muted)' }}>
-                    OTP sent to {authPhone}. Please enter the 6-digit OTP code to continue.
-                  </p>
-                  <div className="form-group">
-                    <label>Enter 6-Digit OTP</label>
+                    <label>Full Name</label>
                     <input
                       type="text"
                       className="form-input"
-                      placeholder="XXXXXX"
-                      value={authOtp}
-                      onChange={(e) => setAuthOtp(e.target.value)}
+                      placeholder="Enter your full name"
+                      value={authName}
+                      onChange={(e) => setAuthName(e.target.value)}
                       required
                     />
                   </div>
-                  <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-                    Verify & Login
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    style={{ width: '100%', marginTop: '8px' }}
-                    onClick={() => setOtpSent(false)}
-                  >
-                    Go Back
-                  </button>
-                </form>
-              )}
+                )}
+                <div className="form-group">
+                  <label>Mobile Number</label>
+                  <input
+                    type="tel"
+                    className="form-input"
+                    placeholder="Enter 10-digit number"
+                    value={authPhone}
+                    onChange={(e) => setAuthPhone(e.target.value)}
+                    required
+                  />
+                </div>
+                <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '8px' }}>
+                  {authMode === 'login' ? 'Login Now' : 'Register & Login'}
+                </button>
+              </form>
             </div>
           </div>
         </div>
