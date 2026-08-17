@@ -112,6 +112,8 @@ export default function AppHome() {
   // Admin Data
   const [adminAnalytics, setAdminAnalytics] = useState<any>(null);
   const [pendingKycProviders, setPendingKycProviders] = useState<any[]>([]);
+  const [allProviders, setAllProviders] = useState<any[]>([]);
+  const [selectedAssignHelperId, setSelectedAssignHelperId] = useState<{ [bookingId: string]: string }>({});
 
   // Load categories and initial state
   useEffect(() => {
@@ -224,6 +226,10 @@ export default function AppHome() {
         const kycRes = await fetch('/api/v1/admin/kyc?status=PENDING_VERIFICATION', { headers });
         const kycData = await kycRes.json();
         if (kycData.success) setPendingKycProviders(kycData.data.providers);
+
+        const allProvidersRes = await fetch('/api/v1/admin/kyc', { headers });
+        const allProvidersData = await allProvidersRes.json();
+        if (allProvidersData.success) setAllProviders(allProvidersData.data.providers);
       }
     } catch (err) {
       console.error('Failed to load dashboard data', err);
@@ -878,6 +884,32 @@ export default function AppHome() {
     }
   };
 
+  const handleAdminAssignWork = async (bookingId: string, providerId: string) => {
+    if (!providerId) {
+      alert('Please select a helper to assign.');
+      return;
+    }
+    try {
+      const res = await fetch('/api/v1/admin/assign', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ bookingId, providerId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || 'Helper successfully assigned to this job!');
+        refreshDashboardData();
+      } else {
+        alert(data.error?.message || 'Failed to assign helper.');
+      }
+    } catch {
+      alert('Error assigning helper.');
+    }
+  };
+
   // Reviews Submit
   const handleSubmitReview = async (e: React.FormEvent, bookingId: string) => {
     e.preventDefault();
@@ -1498,6 +1530,20 @@ export default function AppHome() {
                 <span>KYC Approval Panel</span>
               </div>
               <div
+                className={`${styles.sidebarTab} ${subTab === 'helpers' ? styles.active : ''}`}
+                onClick={() => setSubTab('helpers')}
+              >
+                <User size={18} />
+                <span>Helpers Directory</span>
+              </div>
+              <div
+                className={`${styles.sidebarTab} ${subTab === 'orders' ? styles.active : ''}`}
+                onClick={() => setSubTab('orders')}
+              >
+                <FileText size={18} />
+                <span>Orders & Assignments</span>
+              </div>
+              <div
                 className={`${styles.sidebarTab} ${subTab === 'tickets' ? styles.active : ''}`}
                 onClick={() => setSubTab('tickets')}
               >
@@ -1587,17 +1633,168 @@ export default function AppHome() {
                           </p>
                           <div style={{ display: 'flex', gap: '8px' }}>
                             <button
-                              className="btn btn-primary btn-sm"
+                              className="btn btn-primary"
+                              style={{ padding: '6px 12px', fontSize: '13px' }}
                               onClick={() => handleAdminApproveKyc(p.id, true)}
                             >
                               Approve KYC (Activate)
                             </button>
                             <button
-                              className="btn btn-outline btn-sm btn-danger"
+                              className="btn btn-outline btn-danger"
+                              style={{ padding: '6px 12px', fontSize: '13px' }}
                               onClick={() => handleAdminApproveKyc(p.id, false)}
                             >
                               Reject
                             </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {subTab === 'helpers' && (
+                <div>
+                  <h2 style={{ marginBottom: '20px' }}>Helpers Directory</h2>
+                  {allProviders.length === 0 ? (
+                    <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+                      <p style={{ color: 'var(--color-text-muted)' }}>No helper profiles registered in the system.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-3">
+                      {allProviders.map((p) => (
+                        <div key={p.id} className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                              <h3 style={{ margin: 0, fontSize: '16px' }}>{p.user.name}</h3>
+                              <span className={`badge ${p.kycStatus === 'ACTIVE' || p.kycStatus === 'VERIFIED' ? 'badge-success' : 'badge-warning'}`}>
+                                {p.kycStatus}
+                              </span>
+                            </div>
+                            <p style={{ fontSize: '13px', margin: '4px 0' }}>
+                              📞 <strong>Phone:</strong> {p.user.phone}
+                            </p>
+                            <p style={{ fontSize: '13px', margin: '4px 0' }}>
+                              ⭐ <strong>Rating:</strong> {p.rating} / 5.0
+                            </p>
+                            <p style={{ fontSize: '13px', margin: '4px 0' }}>
+                              💼 <strong>Experience:</strong> {p.experienceYears} Years
+                            </p>
+                            <p style={{ fontSize: '13px', margin: '4px 0' }}>
+                              ✔️ <strong>Completed Jobs:</strong> {p.completedJobsCount}
+                            </p>
+                            {p.kycDocumentType && (
+                              <p style={{ fontSize: '13px', margin: '8px 0 0 0', padding: '6px', backgroundColor: 'rgba(72, 187, 120, 0.05)', borderRadius: 'var(--radius-sm)' }}>
+                                📁 <strong>{p.kycDocumentType}:</strong> <a href="#" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>{p.kycDocumentUrl}</a>
+                              </p>
+                            )}
+                          </div>
+                          <div style={{ marginTop: '16px', display: 'flex', gap: '8px' }}>
+                            {p.kycStatus !== 'ACTIVE' ? (
+                              <button
+                                className="btn btn-primary btn-sm"
+                                style={{ flex: 1 }}
+                                onClick={() => handleAdminApproveKyc(p.id, true)}
+                              >
+                                Verify KYC
+                              </button>
+                            ) : (
+                              <button
+                                className="btn btn-outline btn-sm btn-danger"
+                                style={{ flex: 1 }}
+                                onClick={() => handleAdminApproveKyc(p.id, false)}
+                              >
+                                Suspend/Reject
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {subTab === 'orders' && (
+                <div>
+                  <h2 style={{ marginBottom: '20px' }}>Customer Orders & Assignments</h2>
+                  {allBookings.length === 0 ? (
+                    <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+                      <p style={{ color: 'var(--color-text-muted)' }}>No bookings created in the system yet.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-2">
+                      {allBookings.map((b) => (
+                        <div key={b.id} className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                              <span style={{ fontWeight: 'bold', fontSize: '15px' }}>{b.bookingNumber}</span>
+                              <span className={`badge ${
+                                b.status === 'SERVICE_COMPLETED' ? 'badge-success' : 
+                                b.status === 'PROVIDER_ASSIGNED' || b.status === 'CONFIRMED' ? 'badge-primary' : 
+                                'badge-warning'
+                              }`}>
+                                {b.status}
+                              </span>
+                            </div>
+
+                            <p style={{ fontSize: '13px', margin: '4px 0' }}>
+                              📅 <strong>Date:</strong> {b.bookingDate} • <strong>Slot:</strong> {b.timeSlot}
+                            </p>
+                            <p style={{ fontSize: '13px', margin: '4px 0' }}>
+                              💰 <strong>Total Amount:</strong> ₹{b.totalAmount}
+                            </p>
+
+                            <div style={{ margin: '12px 0', padding: '10px', backgroundColor: 'var(--color-background)', borderRadius: 'var(--radius-sm)' }}>
+                              <h4 style={{ margin: '0 0 4px 0', fontSize: '14px' }}>Customer</h4>
+                              <p style={{ fontSize: '13px', margin: 0 }}>
+                                Phone: {b.customer?.user?.phone || 'Unknown'}
+                              </p>
+                            </div>
+
+                            <div style={{ margin: '12px 0 0 0', padding: '10px', border: '1px dashed var(--color-border)', borderRadius: 'var(--radius-sm)' }}>
+                              <h4 style={{ margin: '0 0 6px 0', fontSize: '14px' }}>Assigned Helper</h4>
+                              {b.provider ? (
+                                <p style={{ fontSize: '13px', margin: 0, color: 'var(--color-success)', fontWeight: 'bold' }}>
+                                  👤 {b.provider.user.name} ({b.provider.user.phone})
+                                </p>
+                              ) : (
+                                <div>
+                                  <p style={{ fontSize: '13px', margin: '0 0 8px 0', color: 'var(--color-error)' }}>
+                                    ❌ No Helper Assigned (Pending)
+                                  </p>
+                                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <select
+                                      className="form-input"
+                                      style={{ padding: '6px', fontSize: '13px', flex: 1 }}
+                                      value={selectedAssignHelperId[b.id] || ''}
+                                      onChange={(e) => {
+                                        setSelectedAssignHelperId({
+                                          ...selectedAssignHelperId,
+                                          [b.id]: e.target.value
+                                        });
+                                      }}
+                                    >
+                                      <option value="">-- Choose Helper --</option>
+                                      {allProviders
+                                        .filter((p) => p.kycStatus === 'ACTIVE')
+                                        .map((p) => (
+                                          <option key={p.id} value={p.id}>
+                                            {p.user.name} ({p.user.phone})
+                                          </option>
+                                        ))}
+                                    </select>
+                                    <button
+                                      className="btn btn-primary btn-sm"
+                                      onClick={() => handleAdminAssignWork(b.id, selectedAssignHelperId[b.id])}
+                                    >
+                                      Assign Work
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -1659,6 +1856,22 @@ export default function AppHome() {
             <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Terms of Service</span>
             <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Contact Help: annaiahabhiraju7@gmail.com</span>
             <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Call Us: 9380850568</span>
+            <span
+              style={{ fontSize: '13px', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 'bold' }}
+              onClick={() => {
+                if (currentUser?.role === 'ADMIN') {
+                  setActiveTab('admin-db');
+                  setSubTab('analytics');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                  setAuthMode('login');
+                  setLoginMessage({ type: 'success', text: 'Please log in with your Admin phone number (+919999999999).' });
+                  setShowLoginModal(true);
+                }
+              }}
+            >
+              🔐 Admin Desk
+            </span>
           </div>
         </div>
       </footer>
