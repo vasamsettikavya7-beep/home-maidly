@@ -155,7 +155,7 @@ export default function AppHome() {
       loadCustomerAddresses();
       refreshDashboardData();
     }
-  }, [currentUser, activeTab, subTab]);
+  }, [currentUser?.id, activeTab, subTab]);
 
   const loadCategories = async () => {
     try {
