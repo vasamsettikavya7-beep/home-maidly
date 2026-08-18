@@ -351,6 +351,11 @@ export default function AppHome() {
     setAuthToken('');
     setCurrentUser(null);
     setActiveTab('explore');
+    setAuthPhone('');
+    setAuthName('');
+    setAuthOtp('');
+    setLoginMessage(null);
+    setIsAdminLogin(false);
   };
 
   // Leaflet Map Initialization and Script Loader
@@ -1098,7 +1103,7 @@ export default function AppHome() {
                   </button>
                 </div>
               ) : (
-                <button className="btn btn-primary btn-sm" onClick={() => setShowLoginModal(true)}>
+                <button className="btn btn-primary btn-sm" onClick={() => { setAuthPhone(''); setAuthName(''); setAuthOtp(''); setLoginMessage(null); setIsAdminLogin(false); setAuthMode('login'); setShowLoginModal(true); }}>
                   Login / Register
                 </button>
               )}
@@ -2164,7 +2169,7 @@ export default function AppHome() {
           <div className={styles.modalContent} style={{ maxWidth: '400px' }}>
             <div className={styles.modalHeader}>
               <h3>{isAdminLogin ? 'Admin Login' : authMode === 'login' ? 'Customer Login' : 'Helper Registration'}</h3>
-              <button className="btn btn-outline btn-sm" onClick={() => { setShowLoginModal(false); setIsAdminLogin(false); }}>✕</button>
+              <button className="btn btn-outline btn-sm" onClick={() => { setShowLoginModal(false); setIsAdminLogin(false); setAuthPhone(''); setAuthName(''); setAuthOtp(''); setLoginMessage(null); }}>✕</button>
             </div>
             <div className={styles.modalBody}>
               {!isAdminLogin && (
